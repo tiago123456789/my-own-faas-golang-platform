@@ -1,0 +1,39 @@
+version: "3"
+
+services:
+  database:
+    image: postgres:14
+    container_name: lambda_platform_database
+    restart: always
+    environment:
+      POSTGRES_DB: lambda_platform_dev
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: root
+    ports:
+      - "5432:5432"
+    networks:
+      - my-own-lambda
+
+  queue:
+    image: redis
+    ports:
+      - 6379:6379
+    container_name: lambda_platform_queue
+    networks:
+      - my-own-lambda
+
+  proxy:
+    build:
+      context: .
+      dockerfile: Dockerfile.proxy
+    ports:
+      - 8080:8080
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    container_name: lambda_platform_proxy
+    networks:
+      - my-own-lambda
+
+networks:
+  my-own-lambda:
+    name: my-own-lambda
