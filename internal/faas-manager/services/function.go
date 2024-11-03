@@ -22,13 +22,18 @@ func NewFunctionService(
 	}
 }
 
+func (f *FunctionService) FindById(id string) models.Function {
+	var function models.Function
+	f.db.First(&function, "id = ?", id)
+	return function
+}
 func (f *FunctionService) FindAll() []models.Function {
 	var functions []models.Function
 	f.db.Find(&functions)
 	return functions
 }
 
-func (f *FunctionService) Deploy(newFunction types.NewFunction, lambdaPath string) error {
+func (f *FunctionService) Deploy(newFunction types.NewFunction, lambdaPath string) (int, error) {
 	function := models.Function{
 		LambdaName:    newFunction.Name,
 		Runtime:       newFunction.Runtime,
@@ -51,22 +56,8 @@ func (f *FunctionService) Deploy(newFunction types.NewFunction, lambdaPath strin
 	newFunction.LambdaPath = lambdaPath
 	err := f.publisher.Publish(newFunction, 2)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
-	return nil
-}
-
-func (f *FunctionService) UpdateProgress(id int, status string) error {
-	var functionReturned models.Function
-	f.db.First(&functionReturned, "id = ?", id)
-	if functionReturned.ID != 0 {
-		functionToUpdate := models.Function{
-			ID:            id,
-			BuildProgress: status,
-		}
-		f.db.Updates(functionToUpdate)
-	}
-
-	return nil
+	return function.ID, nil
 }

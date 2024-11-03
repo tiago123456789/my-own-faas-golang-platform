@@ -4,6 +4,7 @@ import (
 	"log"
 
 	"github.com/joho/godotenv"
+	"github.com/tiago123456789/my-own-faas-golang-platform/internal/builder/configs"
 	job "github.com/tiago123456789/my-own-faas-golang-platform/internal/builder/jobs"
 )
 
@@ -13,5 +14,6 @@ func main() {
 		log.Fatal("Error loading .env file")
 	}
 
-	job.Init()
+	db := configs.InitDB()
+	job.Init(db)
 }

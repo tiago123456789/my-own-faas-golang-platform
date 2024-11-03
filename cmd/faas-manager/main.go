@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"sync"
 
@@ -31,7 +30,6 @@ var consumer *queue.Consumer
 
 func init() {
 	publisher = queue.NewPublisher("builder_docker_image")
-	consumer = queue.NewConsumer("build_docker_image_process")
 }
 
 func main() {
@@ -48,16 +46,7 @@ func main() {
 		*functionService,
 	)
 
-	consumer.Consumer(func(message map[string]interface{}) error {
-
-		fmt.Printf("%v\n", message["id"])
-		fmt.Printf("%s\n", message["status"])
-
-		return nil
-	})
-
-	go consumer.Start()
-
+	app.Get("/functions/:id", functionHandler.FindById)
 	app.Get("/functions", functionHandler.FindAll)
 	app.Post("/functions", functionHandler.Deploy)
 

@@ -34,6 +34,15 @@ services:
     networks:
       - my-own-lambda
 
+  manager:
+    image: hibiken/asynqmon
+    ports:
+      - 5000:8080
+    container_name: lambda_platform_queue_panel
+    command: --redis-addr=queue:6379
+    networks:
+      - my-own-lambda
+
 networks:
   my-own-lambda:
     name: my-own-lambda

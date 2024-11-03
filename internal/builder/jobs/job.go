@@ -7,27 +7,23 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/tiago123456789/my-own-faas-golang-platform/internal/builder/types"
 	"github.com/tiago123456789/my-own-faas-golang-platform/pkg/queue"
+	"gorm.io/gorm"
 )
 
-func Init() {
+func Init(db *gorm.DB) {
 
-	publisher := queue.NewPublisher("build_docker_image_process")
 	consumer := queue.NewConsumer("builder_docker_image")
 
 	consumer.Consumer(func(message map[string]interface{}) error {
 		fmt.Printf("%v", message)
 
-		err := publisher.Publish(types.BuildProgress{
-			ID:     fmt.Sprintf("%v", message["id"]),
-			Status: "IN_PROGRESS",
-		}, 1)
+		db.Exec(
+			"UPDATE functions SET build_progress = ? WHERE id = ?",
+			"IN_PROGRESS",
+			message["id"],
+		)
 
-		if err != nil {
-			fmt.Printf("Error: %v", err)
-			return err
-		}
 		blueprint := strings.Split(fmt.Sprintf("%s", message["runtime"]), ":")[0]
 		blueprintPath := fmt.Sprintf("./internal/builder/blueprint/%s", blueprint)
 		fmt.Println(blueprint, blueprintPath)
@@ -36,7 +32,7 @@ func Init() {
 		destFolder := fmt.Sprintf("%s/code.zip", blueprintPath)
 		fmt.Println(fmt.Sprintf("cp -rf %s %s", srcFolder, destFolder))
 		cpCmd := exec.Command("bash", "-c", fmt.Sprintf("cp -rf %s %s", srcFolder, destFolder))
-		err = cpCmd.Run()
+		err := cpCmd.Run()
 
 		if err != nil {
 			fmt.Printf("Error: %v", err)
@@ -71,14 +67,11 @@ func Init() {
 			return err
 		}
 
-		err = publisher.Publish(types.BuildProgress{
-			ID:     fmt.Sprintf("%v", message["id"]),
-			Status: "DONE",
-		}, 1)
-		if err != nil {
-			fmt.Printf("Error: %v", err)
-			return err
-		}
+		db.Exec(
+			"UPDATE functions SET build_progress = ? WHERE id = ?",
+			"DONE",
+			message["id"],
+		)
 		fmt.Println("Finished the process to build docker image")
 		return nil
 	})

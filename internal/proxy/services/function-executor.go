@@ -47,6 +47,7 @@ func (f *FunctionExecutorService) start(function string, cpu string, memory stri
 		memory = "128mb"
 	}
 
+	fmt.Println(fmt.Sprintf("docker run --rm -d --network=my-own-lambda --cpus %s --memory %s --name %s tiagorosadacosta123456/lambda-%s", cpu, memory, function, function))
 	_, err := exec.Command("/bin/sh", "-c", fmt.Sprintf("docker run --rm -d --network=my-own-lambda --cpus %s --memory %s --name %s tiagorosadacosta123456/lambda-%s", cpu, memory, function, function)).Output()
 	if err != nil {
 		return err

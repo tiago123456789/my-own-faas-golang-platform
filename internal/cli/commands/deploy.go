@@ -8,6 +8,7 @@ import (
 	"log"
 	"mime/multipart"
 	"os"
+	"time"
 
 	"os/exec"
 
@@ -19,8 +20,20 @@ import (
 	modfile "golang.org/x/mod/modfile"
 )
 
+var faasUrl string
+var runtimesAllowed map[string]bool
+
 type DeployCommand struct {
 	httpClient httpclient.HttpClient
+}
+
+func init() {
+	runtimesAllowed = map[string]bool{
+		"golang:1.20": true,
+		"golang:1.19": true,
+		"golang:1.23": true,
+	}
+
 }
 
 func NewDeployCommand() *DeployCommand {
@@ -30,8 +43,37 @@ func NewDeployCommand() *DeployCommand {
 	}
 }
 
+func (cP *DeployCommand) monitorBuildProgress(functionId string, functionName string) {
+	fmt.Println("Starting to build....")
+
+	var responseDataProgress map[string]interface{}
+	ticker := time.NewTicker(2 * time.Second)
+	quit := make(chan struct{})
+	go func() {
+		for {
+			select {
+			case <-ticker.C:
+				urlToSeeProgress := fmt.Sprintf("%s/functions/%s", faasUrl, functionId)
+				cP.httpClient.Get(urlToSeeProgress, &responseDataProgress)
+				if responseDataProgress["buildProgress"] == "IN_PROGRESS" {
+					fmt.Println("Building....")
+				}
+
+				if responseDataProgress["buildProgress"] == "DONE" {
+					fmt.Printf("The function %s is ready to use!!!\n", functionName)
+					ticker.Stop()
+					close(quit)
+				}
+			}
+		}
+	}()
+
+	<-quit
+}
+
 func (cP *DeployCommand) Get() *cobra.Command {
 	var path string
+	faasUrl = os.Getenv("FAAS_URL")
 
 	var cmd = &cobra.Command{
 		Use:   "deploy",
@@ -76,85 +118,83 @@ func (cP *DeployCommand) Get() *cobra.Command {
 
 			modName := modfile.ModulePath(goModBytes)
 
-			runtimesAllowed := []string{
-				"golang:1.20", "golang:1.19", "golang:1.23",
+			if runtimesAllowed[config.Runtime] == false {
+				log.Fatalf("The runtine specificed is not valid")
 			}
 
-			for _, runtime := range runtimesAllowed {
-				if runtime == config.Runtime {
-					var data bytes.Buffer
-					writer := multipart.NewWriter(&data)
+			var data bytes.Buffer
+			writer := multipart.NewWriter(&data)
 
-					err = writer.WriteField("cpu", config.Cpu)
-					if err != nil {
-						fmt.Println("Error writing field:", err)
-						return
-					}
-
-					err = writer.WriteField("memory", config.Memory)
-					if err != nil {
-						fmt.Println("Error writing field:", err)
-						return
-					}
-
-					err = writer.WriteField("moduleName", modName)
-					if err != nil {
-						fmt.Println("Error writing field:", err)
-						return
-					}
-
-					err = writer.WriteField("runtime", config.Runtime)
-					if err != nil {
-						fmt.Println("Error writing field:", err)
-						return
-					}
-
-					err = writer.WriteField("name", config.Name)
-					if err != nil {
-						fmt.Println("Error writing field:", err)
-						return
-					}
-
-					file, err := os.Open(fmt.Sprintf("%s/code.zip", path))
-					if err != nil {
-						fmt.Println("Error opening file:", err)
-						return
-					}
-					defer file.Close()
-
-					part, err := writer.CreateFormFile("file", file.Name())
-					if err != nil {
-						fmt.Println("Error creating form file:", err)
-						return
-					}
-
-					_, err = io.Copy(part, file)
-					if err != nil {
-						fmt.Println("Error copying file:", err)
-						return
-					}
-
-					err = writer.Close()
-					if err != nil {
-						fmt.Println("Error closing writer:", err)
-						return
-					}
-
-					err = cP.httpClient.PostMultiPart(
-						"http://localhost:3000/functions", data, writer,
-					)
-					if err != nil {
-						fmt.Println("Error when tried to deploy the lambda function:", err)
-						return
-					}
-
-					fmt.Println("Execute with success")
-					return
-				}
-
+			err = writer.WriteField("cpu", config.Cpu)
+			if err != nil {
+				fmt.Println("Error writing field:", err)
+				return
 			}
 
-			log.Fatalf("The runtine specificed is not valid")
+			err = writer.WriteField("memory", config.Memory)
+			if err != nil {
+				fmt.Println("Error writing field:", err)
+				return
+			}
+
+			err = writer.WriteField("moduleName", modName)
+			if err != nil {
+				fmt.Println("Error writing field:", err)
+				return
+			}
+
+			err = writer.WriteField("runtime", config.Runtime)
+			if err != nil {
+				fmt.Println("Error writing field:", err)
+				return
+			}
+
+			err = writer.WriteField("name", config.Name)
+			if err != nil {
+				fmt.Println("Error writing field:", err)
+				return
+			}
+
+			file, err := os.Open(fmt.Sprintf("%s/code.zip", path))
+			if err != nil {
+				fmt.Println("Error opening file:", err)
+				return
+			}
+			defer file.Close()
+
+			part, err := writer.CreateFormFile("file", file.Name())
+			if err != nil {
+				fmt.Println("Error creating form file:", err)
+				return
+			}
+
+			_, err = io.Copy(part, file)
+			if err != nil {
+				fmt.Println("Error copying file:", err)
+				return
+			}
+
+			err = writer.Close()
+			if err != nil {
+				fmt.Println("Error closing writer:", err)
+				return
+			}
+
+			var responseData map[string]interface{}
+			err = cP.httpClient.PostMultiPart(
+				faasUrl+"/functions", data, writer,
+				&responseData,
+			)
+			if err != nil {
+				fmt.Println("Error when tried to deploy the lambda function:", err)
+				return
+			}
+
+			cP.monitorBuildProgress(
+				responseData["id"].(string),
+				config.Name,
+			)
+			return
 		},
 	}
 

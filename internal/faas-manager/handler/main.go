@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"reflect"
+	"strconv"
 	"strings"
 
 	"github.com/go-playground/validator"
@@ -39,6 +40,17 @@ func NewFunctionHandler(
 	}
 }
 
+func (f *FunctionHandler) FindById(c *fiber.Ctx) error {
+	id := c.Params("id")
+	function := f.functionService.FindById(id)
+	if function.ID == 0 {
+		return c.Status(404).JSON(fiber.Map{
+			"message": "Not found function",
+		})
+	}
+	return c.JSON(f.functionService.FindById(id))
+}
+
 func (f *FunctionHandler) FindAll(c *fiber.Ctx) error {
 	return c.JSON(f.functionService.FindAll())
 }
@@ -69,7 +81,7 @@ func (f *FunctionHandler) Deploy(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"errors": errs})
 	}
 
-	err = f.functionService.Deploy(newFunction, savePath)
+	functionId, err := f.functionService.Deploy(newFunction, savePath)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"errors": []string{
@@ -78,5 +90,7 @@ func (f *FunctionHandler) Deploy(c *fiber.Ctx) error {
 		})
 	}
 
-	return c.SendStatus(201)
+	return c.Status(201).JSON(fiber.Map{
+		"id": strconv.Itoa(functionId),
+	})
 }
