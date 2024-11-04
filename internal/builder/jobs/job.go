@@ -30,8 +30,7 @@ func Init(db *gorm.DB) {
 
 		srcFolder := fmt.Sprintf("%s", message["path"])
 		destFolder := fmt.Sprintf("%s/code.zip", blueprintPath)
-		fmt.Println(fmt.Sprintf("cp -rf %s %s", srcFolder, destFolder))
-		cpCmd := exec.Command("bash", "-c", fmt.Sprintf("cp -rf %s %s", srcFolder, destFolder))
+		cpCmd := exec.Command("/bin/sh", "-c", fmt.Sprintf("cp -rf %s %s", srcFolder, destFolder))
 		err := cpCmd.Run()
 
 		if err != nil {
@@ -46,7 +45,7 @@ func Init(db *gorm.DB) {
 			message["name"],
 		)
 
-		cmd := exec.Command("bash", "-c", commandToBuild)
+		cmd := exec.Command("/bin/sh", "-c", commandToBuild)
 		stdout, _ := cmd.StdoutPipe()
 		cmd.Start()
 		scanner := bufio.NewScanner(stdout)

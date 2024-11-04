@@ -34,6 +34,47 @@ services:
     networks:
       - my-own-lambda
 
+  builder:
+    build:
+      context: .
+      dockerfile: Dockerfile.builder
+    volumes:
+      - ./uploads:/app/uploads
+      - /var/run/docker.sock:/var/run/docker.sock
+    container_name: lambda_platform_builder
+    networks:
+      - my-own-lambda
+
+  faas_manager:
+    build:
+      context: .
+      dockerfile: Dockerfile.faasManager
+    ports:
+      - 3000:3000
+    volumes:
+      - ./uploads:/app/uploads
+    container_name: lambda_platform_faas_manager
+    networks:
+      - my-own-lambda
+
+  log_collector:
+    build:
+      context: .
+      dockerfile: Dockerfile.logCollector
+    ports:
+      - 5050:5050
+    container_name: lambda_platform_log_collector
+    networks:
+      - my-own-lambda
+
+  log_collector_worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.logCollectorWorker
+    container_name: lambda_platform_log_collector_worker
+    networks:
+      - my-own-lambda
+
   manager:
     image: hibiken/asynqmon
     ports:

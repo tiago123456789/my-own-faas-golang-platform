@@ -78,15 +78,13 @@ func (f *FunctionHandler) Deploy(c *fiber.Ctx) error {
 			errs = append(errs, fmt.Sprintf("field %s: wanted %s %s, got `%s`", err.Field(), err.Tag(), err.Param(), err.Value()))
 		}
 
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"errors": errs})
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": errs})
 	}
 
 	functionId, err := f.functionService.Deploy(newFunction, savePath)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"errors": []string{
-				"Failed to publish message on queue",
-			},
+			"error": "Failed to publish message on queue",
 		})
 	}
 

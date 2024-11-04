@@ -2,7 +2,6 @@ package main
 
 import (
 	"log"
-	"sync"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/joho/godotenv"
@@ -10,27 +9,7 @@ import (
 	"github.com/tiago123456789/my-own-faas-golang-platform/internal/faas-manager/handler"
 	"github.com/tiago123456789/my-own-faas-golang-platform/internal/faas-manager/services"
 	"github.com/tiago123456789/my-own-faas-golang-platform/pkg/queue"
-	"gorm.io/gorm"
 )
-
-type Item struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
-}
-
-var (
-	items = make(map[string]Item)
-	mu    sync.Mutex
-)
-
-var db *gorm.DB
-
-var publisher *queue.Publisher
-var consumer *queue.Consumer
-
-func init() {
-	publisher = queue.NewPublisher("builder_docker_image")
-}
 
 func main() {
 	err := godotenv.Load()
@@ -38,8 +17,10 @@ func main() {
 		log.Fatal("Error loading .env file")
 	}
 
-	db = configs.InitDB()
+	db := configs.InitDB()
 	app := fiber.New()
+
+	publisher := queue.NewPublisher("builder_docker_image")
 
 	functionService := services.NewFunctionService(db, *publisher)
 	functionHandler := handler.NewFunctionHandler(

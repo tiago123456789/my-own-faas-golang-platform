@@ -14,7 +14,7 @@ func main() {
 		log.Fatal("Error loading .env file")
 	}
 
-	db, err := configs.Init()
+	db, err := configs.InitDB()
 	if err != nil {
 		log.Fatalf("Error creating the client: %s", err)
 	}

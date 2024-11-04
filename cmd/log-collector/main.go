@@ -9,10 +9,6 @@ import (
 	"github.com/tiago123456789/my-own-faas-golang-platform/pkg/queue"
 )
 
-type LogRequestBody struct {
-	Log string `json:"log"`
-}
-
 func main() {
 	err := godotenv.Load()
 	if err != nil {
