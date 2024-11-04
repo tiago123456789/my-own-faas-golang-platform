@@ -43,6 +43,42 @@ services:
     networks:
       - my-own-lambda
 
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.10.0
+    container_name: lambda_platform_elasticsearch
+    environment:
+      - discovery.type=single-node
+      - "ES_JAVA_OPTS=-Xms524m -Xmx524m"
+      - "http.publish_host=_local_"
+      - xpack.security.enabled=false
+      - cluster.routing.allocation.disk.threshold_enabled=false
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - esdata:/usr/share/elasticsearch/data
+    ports:
+      - 9200:9200
+      - 9300:9300
+    networks:
+      - my-own-lambda
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:7.10.0
+    container_name: lambda_platform_kibana
+    environment:
+      ELASTICSEARCH_URL: http://elasticsearch:9200
+      ELASTICSEARCH_HOSTS: http://elasticsearch:9200
+    ports:
+      - 5601:5601
+    networks:
+      - my-own-lambda
+
 networks:
   my-own-lambda:
     name: my-own-lambda
+
+volumes:
+  esdata:
+    driver: local

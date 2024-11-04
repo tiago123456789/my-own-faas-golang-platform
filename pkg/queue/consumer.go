@@ -35,6 +35,28 @@ func NewConsumer(queue string) *Consumer {
 
 }
 
+func NewConsumerWithCustomConcurrency(queue string, concurrency int) *Consumer {
+	if concurrency == 0 {
+		concurrency = 1
+	}
+	redisAddr := os.Getenv("REDIS_ADDRESS")
+	clientConsumer := asynq.NewServer(
+		asynq.RedisClientOpt{Addr: redisAddr},
+		asynq.Config{
+			Concurrency: concurrency,
+		},
+	)
+
+	mux := asynq.NewServeMux()
+
+	return &Consumer{
+		queue:  queue,
+		client: clientConsumer,
+		server: mux,
+	}
+
+}
+
 func (c *Consumer) Consumer(handler func(message map[string]interface{}) error) error {
 	c.server.HandleFunc(c.queue, func(ctx context.Context, task *asynq.Task) error {
 		var item map[string]interface{}
