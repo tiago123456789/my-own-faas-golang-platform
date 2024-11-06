@@ -16,48 +16,50 @@ import (
 
 func Init(es *elasticsearch.Client) {
 
-	consumer := queue.NewConsumerWithCustomConcurrency("logs", 10)
-	consumer.Consumer(func(message map[string]interface{}) error {
-		fmt.Println("starting to process message")
-		var logData types.Log
+	consumer := queue.NewConsumer(
+		"logs",
+		func(message map[string]interface{}) error {
+			fmt.Println("starting to process message")
+			var logData types.Log
 
-		jsonString, _ := json.Marshal(message)
-		fmt.Println(string(jsonString))
+			jsonString, _ := json.Marshal(message)
+			fmt.Println(string(jsonString))
 
-		err := json.Unmarshal(jsonString, &logData)
-		if err != nil {
-			fmt.Println(
-				fmt.Sprintf("Error: %v", err),
-			)
-			return err
-		}
+			err := json.Unmarshal(jsonString, &logData)
+			if err != nil {
+				fmt.Println(
+					fmt.Sprintf("Error: %v", err),
+				)
+				return err
+			}
 
-		logData.Level = strings.ToLower(logData.Level)
-		logToByte, err := json.Marshal(logData)
-		if err != nil {
-			fmt.Println(
-				fmt.Sprintf("Error: %v", err),
-			)
-			return err
-		}
+			logData.Level = strings.ToLower(logData.Level)
+			logToByte, err := json.Marshal(logData)
+			if err != nil {
+				fmt.Println(
+					fmt.Sprintf("Error: %v", err),
+				)
+				return err
+			}
 
-		req := esapi.IndexRequest{
-			Index:   "logs",
-			Body:    bytes.NewReader(logToByte),
-			Refresh: "true",
-		}
+			req := esapi.IndexRequest{
+				Index:   "logs",
+				Body:    bytes.NewReader(logToByte),
+				Refresh: "true",
+			}
 
-		res, err := req.Do(context.Background(), es)
-		if err != nil {
-			log.Fatalf("Error getting response: %s", err)
-		}
-		defer res.Body.Close()
+			res, err := req.Do(context.Background(), es)
+			if err != nil {
+				log.Fatalf("Error getting response: %s", err)
+			}
+			defer res.Body.Close()
 
-		if res.IsError() {
-			log.Printf("[%s] Error indexing document ID", res.Status())
-		}
-		return nil
-	})
+			if res.IsError() {
+				log.Printf("[%s] Error indexing document ID", res.Status())
+			}
+			return nil
+		},
+	)
 
 	consumer.Start()
 }

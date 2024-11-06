@@ -15,10 +15,25 @@ services:
       - my-own-lambda
 
   queue:
+    image: nats-streaming:latest
+    container_name: nats-streaming-server
+    environment:
+      - NATS_STREAMING_CLUSTER_ID=test-cluster
+      - NATS_STREAMING_STORE=MEMORY # Store messages in memory (default is file-based persistence)
+      - NATS_STREAMING_CLIENT_ID=nats-streaming-server
+    ports:
+      - "4222:4222" # NATS port
+      - "8222:8222" # NATS HTTP monitoring port
+      - "7777:7777" # NATS Streaming port
+    restart: unless-stopped
+    networks:
+      - my-own-lambda
+
+  cache:
     image: redis
     ports:
       - 6379:6379
-    container_name: lambda_platform_queue
+    container_name: lambda_platform_cache
     networks:
       - my-own-lambda
 
@@ -33,6 +48,10 @@ services:
     container_name: lambda_platform_proxy
     networks:
       - my-own-lambda
+    depends_on:
+      - queue
+      - cache
+      - database
 
   builder:
     build:
@@ -44,6 +63,10 @@ services:
     container_name: lambda_platform_builder
     networks:
       - my-own-lambda
+    depends_on:
+      - queue
+      - cache
+      - database
 
   faas_manager:
     build:
@@ -56,6 +79,10 @@ services:
     container_name: lambda_platform_faas_manager
     networks:
       - my-own-lambda
+    depends_on:
+      - queue
+      - cache
+      - database
 
   log_collector:
     build:
@@ -66,6 +93,9 @@ services:
     container_name: lambda_platform_log_collector
     networks:
       - my-own-lambda
+    depends_on:
+      - queue
+      - cache
 
   log_collector_worker:
     build:
@@ -74,15 +104,9 @@ services:
     container_name: lambda_platform_log_collector_worker
     networks:
       - my-own-lambda
-
-  manager:
-    image: hibiken/asynqmon
-    ports:
-      - 5000:8080
-    container_name: lambda_platform_queue_panel
-    command: --redis-addr=queue:6379
-    networks:
-      - my-own-lambda
+    depends_on:
+      - queue
+      - cache
 
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:7.10.0

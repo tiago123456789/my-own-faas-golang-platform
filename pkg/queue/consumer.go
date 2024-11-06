@@ -1,84 +1,65 @@
 package queue
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"log"
 	"os"
+	"runtime"
 
-	"github.com/hibiken/asynq"
+	"github.com/google/uuid"
+	"github.com/nats-io/stan.go"
 )
 
 type Consumer struct {
-	queue  string
-	client *asynq.Server
-	server *asynq.ServeMux
+	queue   string
+	client  stan.Conn
+	handler func(message map[string]interface{}) error
 }
 
-func NewConsumer(queue string) *Consumer {
-	redisAddr := os.Getenv("REDIS_ADDRESS")
-	clientConsumer := asynq.NewServer(
-		asynq.RedisClientOpt{Addr: redisAddr},
-		asynq.Config{
-			Concurrency: 1,
-		},
-	)
+func NewConsumer(queue string, handler func(message map[string]interface{}) error) *Consumer {
+	natsURL := os.Getenv("NATS_ADDRESS")
+	opts := []stan.Option{
+		stan.NatsURL(natsURL),
+	}
 
-	mux := asynq.NewServeMux()
+	conn, err := stan.Connect("test-cluster", uuid.NewString(), opts...)
+	if err != nil {
+		log.Fatal("Failed to connect to NATS", err)
+	}
 
 	return &Consumer{
-		queue:  queue,
-		client: clientConsumer,
-		server: mux,
+		queue:   queue,
+		client:  conn,
+		handler: handler,
 	}
 
-}
-
-func NewConsumerWithCustomConcurrency(queue string, concurrency int) *Consumer {
-	if concurrency == 0 {
-		concurrency = 1
-	}
-	redisAddr := os.Getenv("REDIS_ADDRESS")
-	clientConsumer := asynq.NewServer(
-		asynq.RedisClientOpt{Addr: redisAddr},
-		asynq.Config{
-			Concurrency: concurrency,
-		},
-	)
-
-	mux := asynq.NewServeMux()
-
-	return &Consumer{
-		queue:  queue,
-		client: clientConsumer,
-		server: mux,
-	}
-
-}
-
-func (c *Consumer) Consumer(handler func(message map[string]interface{}) error) error {
-	c.server.HandleFunc(c.queue, func(ctx context.Context, task *asynq.Task) error {
-		var item map[string]interface{}
-		if err := json.Unmarshal(task.Payload(), &item); err != nil {
-			fmt.Errorf("json.Unmarshal failed: %v", err)
-			return err
-		}
-
-		err := handler(item)
-		if err != nil {
-			return err
-		}
-
-		return nil
-	})
-
-	return nil
 }
 
 func (c *Consumer) Start() {
-	if err := c.client.Run(c.server); err != nil {
-		log.Fatalf("could not run server: %v", err)
+	_, err := c.client.QueueSubscribe(c.queue, c.queue, func(msg *stan.Msg) {
+		var item map[string]interface{}
+		if err := json.Unmarshal(msg.Data, &item); err != nil {
+			fmt.Errorf("json.Unmarshal failed: %v", err)
+			return
+		}
+
+		err := c.handler(item)
+		if err != nil {
+			fmt.Errorf("json.Unmarshal failed: %v", err)
+			return
+		}
+
+		msg.Ack()
+	},
+		stan.DurableName("durable-sub"),
+		stan.SetManualAckMode(),
+		stan.DeliverAllAvailable(),
+	)
+
+	if err != nil {
+		fmt.Errorf("json.Unmarshal failed: %v", err)
 	}
 
+	runtime.Goexit()
 }

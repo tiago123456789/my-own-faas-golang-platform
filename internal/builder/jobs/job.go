@@ -13,67 +13,64 @@ import (
 
 func Init(db *gorm.DB) {
 
-	consumer := queue.NewConsumer("builder_docker_image")
+	consumer := queue.NewConsumer(
+		"builder_docker_image",
+		func(message map[string]interface{}) error {
+			db.Exec(
+				"UPDATE functions SET build_progress = ? WHERE id = ?",
+				"IN_PROGRESS",
+				message["id"],
+			)
 
-	consumer.Consumer(func(message map[string]interface{}) error {
-		fmt.Printf("%v", message)
+			blueprint := strings.Split(fmt.Sprintf("%s", message["runtime"]), ":")[0]
+			blueprintPath := fmt.Sprintf("./internal/builder/blueprint/%s", blueprint)
 
-		db.Exec(
-			"UPDATE functions SET build_progress = ? WHERE id = ?",
-			"IN_PROGRESS",
-			message["id"],
-		)
+			srcFolder := fmt.Sprintf("%s", message["path"])
+			destFolder := fmt.Sprintf("%s/code.zip", blueprintPath)
+			cpCmd := exec.Command("/bin/sh", "-c", fmt.Sprintf("cp -rf %s %s", srcFolder, destFolder))
+			err := cpCmd.Run()
 
-		blueprint := strings.Split(fmt.Sprintf("%s", message["runtime"]), ":")[0]
-		blueprintPath := fmt.Sprintf("./internal/builder/blueprint/%s", blueprint)
-		fmt.Println(blueprint, blueprintPath)
+			if err != nil {
+				fmt.Printf("Error: %v", err)
+			}
 
-		srcFolder := fmt.Sprintf("%s", message["path"])
-		destFolder := fmt.Sprintf("%s/code.zip", blueprintPath)
-		cpCmd := exec.Command("/bin/sh", "-c", fmt.Sprintf("cp -rf %s %s", srcFolder, destFolder))
-		err := cpCmd.Run()
+			commandToBuild := fmt.Sprintf(
+				"cd %s && docker build --build-arg MODULE_PATH=%s  --build-arg VERSION_TAG=%s -t tiagorosadacosta123456/lambda-%s .",
+				blueprintPath,
+				message["moduleName"],
+				message["runtime"],
+				message["name"],
+			)
 
-		if err != nil {
-			fmt.Printf("Error: %v", err)
-		}
+			cmd := exec.Command("/bin/sh", "-c", commandToBuild)
+			stdout, _ := cmd.StdoutPipe()
+			cmd.Start()
+			scanner := bufio.NewScanner(stdout)
+			scanner.Split(bufio.ScanLines)
+			for scanner.Scan() {
+				m := scanner.Text()
 
-		commandToBuild := fmt.Sprintf(
-			"cd %s && docker build --build-arg MODULE_PATH=%s  --build-arg VERSION_TAG=%s -t tiagorosadacosta123456/lambda-%s .",
-			blueprintPath,
-			message["moduleName"],
-			message["runtime"],
-			message["name"],
-		)
+				fmt.Println(m)
+			}
 
-		cmd := exec.Command("/bin/sh", "-c", commandToBuild)
-		stdout, _ := cmd.StdoutPipe()
-		cmd.Start()
-		scanner := bufio.NewScanner(stdout)
-		scanner.Split(bufio.ScanLines)
-		for scanner.Scan() {
-			m := scanner.Text()
+			err = os.Remove(destFolder)
+			if err != nil {
+				fmt.Printf("Error: %v", err)
+			}
 
-			fmt.Println(m)
-		}
+			if err != nil {
+				fmt.Println(fmt.Sprintf("Error: %v", err))
+				return err
+			}
 
-		err = os.Remove(destFolder)
-		if err != nil {
-			fmt.Printf("Error: %v", err)
-		}
-
-		if err != nil {
-			fmt.Println(fmt.Sprintf("Error: %v", err))
-			return err
-		}
-
-		db.Exec(
-			"UPDATE functions SET build_progress = ? WHERE id = ?",
-			"DONE",
-			message["id"],
-		)
-		fmt.Println("Finished the process to build docker image")
-		return nil
-	})
+			db.Exec(
+				"UPDATE functions SET build_progress = ? WHERE id = ?",
+				"DONE",
+				message["id"],
+			)
+			fmt.Println("Finished the process to build docker image")
+			return nil
+		})
 
 	consumer.Start()
 

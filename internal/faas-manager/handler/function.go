@@ -40,6 +40,17 @@ func NewFunctionHandler(
 	}
 }
 
+func (f *FunctionHandler) GetLogs(c *fiber.Ctx) error {
+	id := c.Params("id")
+	function := f.functionService.FindById(id)
+	if function.ID == 0 {
+		return c.Status(404).JSON(fiber.Map{
+			"message": "Not found function",
+		})
+	}
+	return c.JSON(f.functionService.GetLogs(function.LambdaName))
+}
+
 func (f *FunctionHandler) FindById(c *fiber.Ctx) error {
 	id := c.Params("id")
 	function := f.functionService.FindById(id)

@@ -2,30 +2,41 @@ package queue
 
 import (
 	"encoding/json"
+	"fmt"
+	"log"
 	"os"
 	"time"
 
-	"github.com/hibiken/asynq"
+	"github.com/google/uuid"
+	"github.com/nats-io/stan.go"
 )
 
 type Publisher struct {
 	queue  string
-	client *asynq.Client
+	client stan.Conn
 }
 
 func NewPublisher(queue string) *Publisher {
-	redisAddr := os.Getenv("REDIS_ADDRESS")
-	client := asynq.NewClient(asynq.RedisClientOpt{Addr: redisAddr})
+	natsURL := os.Getenv("NATS_ADDRESS")
+	opts := []stan.Option{
+		stan.NatsURL(natsURL),
+	}
+
+	conn, err := stan.Connect("test-cluster", uuid.NewString(), opts...)
+	if err != nil {
+		log.Fatal("Failed to connect to NATS", err)
+	}
+
 	return &Publisher{
 		queue:  queue,
-		client: client,
+		client: conn,
 	}
 }
 
 func (p *Publisher) Publish(message interface{}, totalRetries int) error {
 	payloadMessage, _ := json.Marshal(message)
-	_, error := p.client.Enqueue(
-		asynq.NewTask(p.queue, []byte(payloadMessage)),
+	error := p.client.Publish(
+		p.queue, payloadMessage,
 	)
 
 	if error != nil {
@@ -40,15 +51,23 @@ func (p *Publisher) PublishWithDelay(
 	totalRetries int,
 	delay time.Duration,
 ) error {
-	payloadMessage, _ := json.Marshal(message)
-	_, error := p.client.Enqueue(
-		asynq.NewTask(p.queue, []byte(payloadMessage)),
-		asynq.ProcessIn(delay),
-	)
+	ticker := time.NewTicker(delay)
+	go func(ticker *time.Ticker) {
+		for {
+			select {
+			case <-ticker.C:
+				payloadMessage, _ := json.Marshal(message)
+				err := p.client.Publish(
+					p.queue, payloadMessage,
+				)
 
-	if error != nil {
-		return error
-	}
+				if err != nil {
+					fmt.Sprintf("Err: %v", err)
+				}
 
+				ticker.Stop()
+			}
+		}
+	}(ticker)
 	return nil
 }

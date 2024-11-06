@@ -18,15 +18,21 @@ func main() {
 	}
 
 	db := configs.InitDB()
+	esDB, err := configs.InitES()
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	app := fiber.New()
 
 	publisher := queue.NewPublisher("builder_docker_image")
 
-	functionService := services.NewFunctionService(db, *publisher)
+	functionService := services.NewFunctionService(db, *publisher, esDB)
 	functionHandler := handler.NewFunctionHandler(
 		*functionService,
 	)
 
+	app.Get("/functions/:id/logs", functionHandler.GetLogs)
 	app.Get("/functions/:id", functionHandler.FindById)
 	app.Get("/functions", functionHandler.FindAll)
 	app.Post("/functions", functionHandler.Deploy)
