@@ -2,7 +2,7 @@
 
 - The project has focus to create my own faas platform to run the lambda function using golang.
 
-## FUTURE
+## FUTURE FEATURES
 
 - Cronjob trigger to allow trigger the lambda function in specific interval.
 - Customize the lambda function timeout.
