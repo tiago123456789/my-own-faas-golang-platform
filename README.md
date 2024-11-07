@@ -73,6 +73,7 @@
 ## EXTRA DATA
 
 - [Link Insominia with routes](./Insomnia_2024-11-07.json)
+- In directory **examples** you can find examples of lambda functions.
 
 ## ARCHITECTURE
 
@@ -121,3 +122,11 @@ function:
       method: POST # HTTP VERB. OTHER OPTIONS: POST, DELETE, GET and PUT
       path: / # PATH TO TRIGGER THE LAMBDA FUNCTION. THE PATH IS BASED THE PATH FROM FIBER v2
 ```
+
+### ADDIONAL NOTES
+
+- All lambda functions needs these 2 dependencies:
+  ```
+  "github.com/gofiber/fiber/v2"
+  "go.uber.org/zap"
+  ```
