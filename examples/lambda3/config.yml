@@ -1,0 +1,12 @@
+name: lambda3
+runtime: golang:1.23
+cpu: 0.5
+memory: 128m
+envs:
+  MESSAGE: "LAMBDA 3 HERE"
+function:
+  path: ./function
+  trigger:
+    http:
+      method: GET
+      path: /message

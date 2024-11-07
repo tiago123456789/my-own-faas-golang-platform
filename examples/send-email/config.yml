@@ -1,0 +1,13 @@
+name: sendmail
+runtime: golang:1.23
+cpu: 0.5
+memory: 128m
+envs:
+  SUBJECT: "Hello, lambda function send-mail."
+  MESSAGE: "Hello, lambda function send-mail"
+function:
+  path: ./send-mail.go
+  trigger:
+    http:
+      method: GET
+      path: /send-mail

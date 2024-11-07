@@ -1,0 +1,10 @@
+name: lambda2
+runtime: golang:1.20
+envs:
+  MESSAGE: "LAMBDA 2 HERE"
+function:
+  path: ./function
+  trigger:
+    http:
+      method: GET
+      path: /hi-lambda-2

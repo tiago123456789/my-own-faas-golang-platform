@@ -1,0 +1,12 @@
+name: send-request
+runtime: golang:1.23
+cpu: 1
+memory: 128m
+envs:
+  WEBHOOK_URL: "https://webhook.site/577f2135-0695-4636-9e37-0a7ebf42833a"
+function:
+  path: ./function.go
+  trigger:
+    http:
+      method: POST
+      path: /

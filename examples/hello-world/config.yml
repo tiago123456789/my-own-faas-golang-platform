@@ -1,0 +1,12 @@
+name: hello-world
+runtime: golang:1.23
+cpu: 1
+memory: 128m
+envs:
+  MESSAGE: "HELLO WORLD!!!"
+function:
+  path: ./function.go
+  trigger:
+    http:
+      method: GET
+      path: /

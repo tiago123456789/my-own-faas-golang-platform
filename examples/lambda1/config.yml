@@ -1,0 +1,10 @@
+name: lambda-golang-hi
+runtime: golang:1.20
+envs:
+  MESSAGE: "WELCOME MY FRIEND"
+function:
+  path: ./function1
+  trigger:
+    http:
+      method: GET
+      path: /links/:token
