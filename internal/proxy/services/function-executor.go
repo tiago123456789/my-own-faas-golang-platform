@@ -6,27 +6,26 @@ import (
 	"os/exec"
 	"time"
 
-	"github.com/tiago123456789/my-own-faas-golang-platform/internal/proxy/models"
+	"github.com/tiago123456789/my-own-faas-golang-platform/internal/proxy/repositories"
 	"github.com/tiago123456789/my-own-faas-golang-platform/pkg/cache"
 	"github.com/tiago123456789/my-own-faas-golang-platform/pkg/queue"
-	"gorm.io/gorm"
 )
 
 type FunctionExecutorService struct {
-	cache     cache.Cache
-	publisher queue.Publisher
-	db        *gorm.DB
+	cache      cache.Cache
+	publisher  queue.Publisher
+	repository *repositories.FunctionRepository
 }
 
 func NewFunctionExecutorService(
 	cache cache.Cache,
 	publisher queue.Publisher,
-	db *gorm.DB,
+	repository *repositories.FunctionRepository,
 ) *FunctionExecutorService {
 	return &FunctionExecutorService{
-		cache:     cache,
-		publisher: publisher,
-		db:        db,
+		cache:      cache,
+		publisher:  publisher,
+		repository: repository,
 	}
 }
 
@@ -71,9 +70,7 @@ func (f *FunctionExecutorService) Stop(function string) error {
 func (f *FunctionExecutorService) Run(function string) error {
 	functionCached, _ := f.cache.Get(function)
 	if functionCached == "" {
-		var functionReturned models.Function
-
-		f.db.First(&functionReturned, "lambda_name = ?", function)
+		functionReturned := f.repository.FindByName(function)
 		if functionReturned.ID == 0 {
 			return errors.New("Function not found")
 		}

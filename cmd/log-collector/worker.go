@@ -6,6 +6,7 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/tiago123456789/my-own-faas-golang-platform/internal/log-collector/configs"
 	"github.com/tiago123456789/my-own-faas-golang-platform/internal/log-collector/jobs"
+	"github.com/tiago123456789/my-own-faas-golang-platform/internal/log-collector/repositories"
 )
 
 func main() {
@@ -19,6 +20,6 @@ func main() {
 		log.Fatalf("Error creating the client: %s", err)
 	}
 
-	jobs.Init(db)
-
+	logRepository := repositories.NewLogRepository(db)
+	jobs.Init(logRepository)
 }

@@ -6,6 +6,7 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/tiago123456789/my-own-faas-golang-platform/internal/builder/configs"
 	job "github.com/tiago123456789/my-own-faas-golang-platform/internal/builder/jobs"
+	"github.com/tiago123456789/my-own-faas-golang-platform/internal/builder/repositories"
 )
 
 func main() {
@@ -15,5 +16,7 @@ func main() {
 	}
 
 	db := configs.InitDB()
-	job.Init(db)
+
+	functionRepository := repositories.NewFunctionRepository(db)
+	job.Init(functionRepository)
 }

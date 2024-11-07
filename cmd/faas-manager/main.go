@@ -7,6 +7,7 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/tiago123456789/my-own-faas-golang-platform/internal/faas-manager/configs"
 	"github.com/tiago123456789/my-own-faas-golang-platform/internal/faas-manager/handler"
+	"github.com/tiago123456789/my-own-faas-golang-platform/internal/faas-manager/repositories"
 	"github.com/tiago123456789/my-own-faas-golang-platform/internal/faas-manager/services"
 	"github.com/tiago123456789/my-own-faas-golang-platform/pkg/queue"
 )
@@ -27,7 +28,10 @@ func main() {
 
 	publisher := queue.NewPublisher("builder_docker_image")
 
-	functionService := services.NewFunctionService(db, *publisher, esDB)
+	functionRepository := repositories.NewFunctionRepository(
+		db, esDB,
+	)
+	functionService := services.NewFunctionService(*publisher, *functionRepository)
 	functionHandler := handler.NewFunctionHandler(
 		*functionService,
 	)

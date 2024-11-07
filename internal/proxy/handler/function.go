@@ -25,7 +25,6 @@ func (f *FunctionHandler) Execute(c *fiber.Ctx) error {
 	function := c.Params("function")
 	path := c.Params("*1")
 
-	fmt.Println(function, path)
 	err := f.functionExecutor.Run(function)
 	if err != nil {
 		return c.Status(404).JSON(fiber.Map{

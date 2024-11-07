@@ -9,6 +9,7 @@ import (
 	"github.com/tiago123456789/my-own-faas-golang-platform/internal/proxy/configs"
 	"github.com/tiago123456789/my-own-faas-golang-platform/internal/proxy/handler"
 	"github.com/tiago123456789/my-own-faas-golang-platform/internal/proxy/jobs"
+	"github.com/tiago123456789/my-own-faas-golang-platform/internal/proxy/repositories"
 	"github.com/tiago123456789/my-own-faas-golang-platform/internal/proxy/services"
 	"github.com/tiago123456789/my-own-faas-golang-platform/pkg/cache"
 	"github.com/tiago123456789/my-own-faas-golang-platform/pkg/queue"
@@ -34,8 +35,9 @@ func main() {
 		"delete_function_with_expire",
 	)
 
+	functionRepository := repositories.NewFunctionRepository(db)
 	functionExecutor := services.NewFunctionExecutorService(
-		*cache, *publisher, db,
+		*cache, *publisher, functionRepository,
 	)
 
 	jobs.Init(*functionExecutor)

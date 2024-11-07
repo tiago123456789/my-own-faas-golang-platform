@@ -7,19 +7,18 @@ import (
 	"os/exec"
 	"strings"
 
+	"github.com/tiago123456789/my-own-faas-golang-platform/internal/builder/repositories"
 	"github.com/tiago123456789/my-own-faas-golang-platform/pkg/queue"
-	"gorm.io/gorm"
 )
 
-func Init(db *gorm.DB) {
+func Init(respository *repositories.FunctionRepository) {
 
 	consumer := queue.NewConsumer(
 		"builder_docker_image",
 		func(message map[string]interface{}) error {
-			db.Exec(
-				"UPDATE functions SET build_progress = ? WHERE id = ?",
-				"IN_PROGRESS",
+			respository.UpdateProcess(
 				message["id"],
+				"IN_PROGRESS",
 			)
 
 			blueprint := strings.Split(fmt.Sprintf("%s", message["runtime"]), ":")[0]
@@ -63,10 +62,9 @@ func Init(db *gorm.DB) {
 				return err
 			}
 
-			db.Exec(
-				"UPDATE functions SET build_progress = ? WHERE id = ?",
-				"DONE",
+			respository.UpdateProcess(
 				message["id"],
+				"DONE",
 			)
 			fmt.Println("Finished the process to build docker image")
 			return nil
