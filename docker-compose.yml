@@ -108,6 +108,34 @@ services:
       - queue
       - cache
 
+  scheduler_trigger:
+    build:
+      context: .
+      dockerfile: Dockerfile.scheduler
+    command: ./myapp -enable_scheduler
+    container_name: lambda_platform_scheduler_trigger
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - my-own-lambda
+    depends_on:
+      - queue
+      - cache
+
+  scheduler_executor:
+    build:
+      context: .
+      dockerfile: Dockerfile.scheduler
+    command: ./myapp
+    container_name: lambda_platform_scheduler_executor
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - my-own-lambda
+    depends_on:
+      - queue
+      - cache
+
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:7.10.0
     container_name: lambda_platform_elasticsearch
