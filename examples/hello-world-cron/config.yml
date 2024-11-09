@@ -1,0 +1,9 @@
+name: hello-world-cron
+runtime: golang-cron:1.23
+cpu: 1
+memory: 128m
+function:
+  path: ./function.go
+  trigger:
+    cron:
+      interval: 1m

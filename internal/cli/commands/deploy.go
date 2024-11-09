@@ -29,9 +29,12 @@ type DeployCommand struct {
 
 func init() {
 	runtimesAllowed = map[string]bool{
-		"golang:1.20": true,
-		"golang:1.19": true,
-		"golang:1.23": true,
+		"golang:1.20":      true,
+		"golang:1.19":      true,
+		"golang:1.23":      true,
+		"golang-cron:1.23": true,
+		"golang-cron:1.20": true,
+		"golang-cron:1.19": true,
 	}
 
 }
@@ -107,8 +110,8 @@ func (cP *DeployCommand) Get() *cobra.Command {
 				log.Fatalf("The file config.yml has sometime wrong, please the indentention")
 			}
 
-			if config.Function.Trigger["http"] == nil {
-				log.Fatalf("The only trigger supported is http")
+			if config.Function.Trigger["http"] == nil && config.Function.Trigger["cron"] == nil {
+				log.Fatalf("The triggers supported are: http and cron")
 			}
 
 			goModBytes, err := ioutil.ReadFile(fmt.Sprintf("%s/go.mod", path))
@@ -124,6 +127,27 @@ func (cP *DeployCommand) Get() *cobra.Command {
 
 			var data bytes.Buffer
 			writer := multipart.NewWriter(&data)
+
+			var trigger string
+			if config.Function.Trigger["http"] != nil {
+				trigger = "http"
+			} else {
+				trigger = "cron"
+			}
+
+			if len(config.Function.Trigger["cron"]) > 0 {
+				err = writer.WriteField("interval", config.Function.Trigger["cron"]["interval"])
+				if err != nil {
+					fmt.Println("Error writing field:", err)
+					return
+				}
+			}
+
+			err = writer.WriteField("trigger", trigger)
+			if err != nil {
+				fmt.Println("Error writing field:", err)
+				return
+			}
 
 			err = writer.WriteField("cpu", config.Cpu)
 			if err != nil {

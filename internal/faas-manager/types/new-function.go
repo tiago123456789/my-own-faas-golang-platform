@@ -8,4 +8,6 @@ type NewFunction struct {
 	LambdaPath string `json:"path"`
 	Cpu        string `json:"cpu"`
 	Memory     string `json:"memory"`
+	Interval   string `json: "interval"`
+	Trigger    string `json:"trigger"`
 }

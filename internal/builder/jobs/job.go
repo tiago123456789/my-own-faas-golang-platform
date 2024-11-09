@@ -16,6 +16,7 @@ func Init(respository *repositories.FunctionRepository) {
 	consumer := queue.NewConsumer(
 		"builder_docker_image",
 		func(message map[string]interface{}) error {
+			fmt.Println(message)
 			respository.UpdateProcess(
 				message["id"],
 				"IN_PROGRESS",
@@ -33,11 +34,20 @@ func Init(respository *repositories.FunctionRepository) {
 				fmt.Printf("Error: %v", err)
 			}
 
+			verstionTag := fmt.Sprintf("%s", message["runtime"])
+			if message["trigger"] == "cron" {
+				verstionTag = fmt.Sprintf(
+					"%s:%s",
+					strings.Split(fmt.Sprintf("%s", message["runtime"]), "-")[0],
+					strings.Split(fmt.Sprintf("%s", message["runtime"]), ":")[1],
+				)
+			}
+
 			commandToBuild := fmt.Sprintf(
 				"cd %s && docker build --build-arg MODULE_PATH=%s  --build-arg VERSION_TAG=%s -t tiagorosadacosta123456/lambda-%s .",
 				blueprintPath,
 				message["moduleName"],
-				message["runtime"],
+				verstionTag,
 				message["name"],
 			)
 
