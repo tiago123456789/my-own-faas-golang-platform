@@ -21,22 +21,9 @@ import (
 )
 
 var faasUrl string
-var runtimesAllowed map[string]bool
 
 type DeployCommand struct {
 	httpClient httpclient.HttpClient
-}
-
-func init() {
-	runtimesAllowed = map[string]bool{
-		"golang:1.20":      true,
-		"golang:1.19":      true,
-		"golang:1.23":      true,
-		"golang-cron:1.23": true,
-		"golang-cron:1.20": true,
-		"golang-cron:1.19": true,
-	}
-
 }
 
 func NewDeployCommand() *DeployCommand {
@@ -120,10 +107,6 @@ func (cP *DeployCommand) Get() *cobra.Command {
 			}
 
 			modName := modfile.ModulePath(goModBytes)
-
-			if runtimesAllowed[config.Runtime] == false {
-				log.Fatalf("The runtine specificed is not valid")
-			}
 
 			var data bytes.Buffer
 			writer := multipart.NewWriter(&data)

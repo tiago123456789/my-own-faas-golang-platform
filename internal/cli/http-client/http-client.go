@@ -3,9 +3,13 @@ package httpclient
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"log"
 	"mime/multipart"
 	"net/http"
+
+	"github.com/tiago123456789/my-own-faas-golang-platform/internal/cli/types"
 )
 
 type HttpClient struct {
@@ -53,6 +57,20 @@ func (h *HttpClient) PostMultiPart(
 	if err != nil {
 		return err
 	}
+
+	if resp.StatusCode != 201 {
+		fmt.Println("")
+
+		var responseError types.ResponseError
+
+		if err := json.NewDecoder(resp.Body).Decode(&responseError); err != nil {
+			log.Fatalf("Error decoding JSON: %v", err)
+			return err
+		}
+
+		return errors.New(responseError.Error)
+	}
+
 	defer resp.Body.Close()
 	if err := json.NewDecoder(resp.Body).Decode(&responseData); err != nil {
 		log.Fatalf("Error decoding JSON: %v", err)

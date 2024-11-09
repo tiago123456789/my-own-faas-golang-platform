@@ -1,5 +1,5 @@
 name: hello-world-cron2
-runtime: golang-cron:1.23
+runtime: golang-cron:1.24
 cpu: 1
 memory: 128m
 function:

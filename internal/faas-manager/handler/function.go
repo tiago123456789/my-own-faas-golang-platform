@@ -95,7 +95,7 @@ func (f *FunctionHandler) Deploy(c *fiber.Ctx) error {
 	functionId, err := f.functionService.Deploy(newFunction, savePath)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Failed to publish message on queue",
+			"error": err.Error(),
 		})
 	}
 
