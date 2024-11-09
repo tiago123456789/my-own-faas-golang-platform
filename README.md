@@ -18,12 +18,20 @@
 
 ```
 - cmd
+  --- scheduler(the project responsible to trigger the lambda function using cron trigger)
   --- builder(the project responsible to lambda function docker image)
   --- cli(CLI to automate the lambda function deploy )
   --- faas-manager(the project responsible to manage the lambda function)
   --- log-collector(the project responsible to collect the lambda function logs and the lambda function execution logs)
   --- proxy(the project responsible to trigger the lambda function when make the http request)
 - internal
+  --- scheduler
+  ----- configs
+  ----- cron
+  ----- jobs
+  ----- models
+  ----- respoitories
+  ----- services
   --- builder
   ----- blueprint
   ----- configs
