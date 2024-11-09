@@ -75,9 +75,13 @@
 - [Link Insominia with routes](./Insomnia_2024-11-07.json)
 - In directory **examples** you can find examples of lambda functions.
 
-## ARCHITECTURE
+## ARCHITECTURE LAMBDA FUNCTION TRIGGER BY HTTP
 
 ![The architecture of application](./architecture.png "The architecture")
+
+## ARCHITECTURE LAMBDA FUNCTION TRIGGER BY CRON
+
+![The architecture of application](./architecture-cron.png "The architecture")
 
 ## INSTRUCTIONS TO CREATE YOUR OWN LAMBDA FUNCTION
 
@@ -107,21 +111,36 @@ func Handler(c *fiber.Ctx, logger *zap.Logger) error {
 - Execute command: **go mod init module_name**.
 - Execute command **go mod tidy** to download the dependencies.
 - Create **config.yml** file in root the directory. The file needs to follow the structure:
-
-```yaml
-name: name_lambda_function
-runtime: golang:1.23 # The another runtimes allowed: golang:1.20, golang:1.19 and golang:1.23
-cpu: 1 # Default value is: 1
-memory: 128m # Default value is: 128m
-envs:
-  WEBHOOK_URL: value_env_here
-function:
-  path: ./function.go # the lambda function path
-  trigger:
-    http:
-      method: POST # HTTP VERB. OTHER OPTIONS: POST, DELETE, GET and PUT
-      path: / # PATH TO TRIGGER THE LAMBDA FUNCTION. THE PATH IS BASED THE PATH FROM FIBER v2
-```
+  - Cron trigger:
+    ```yaml
+    name: name_lambda_function
+    runtime: golang-cron:1.23 # The another runtimes allowed: golang-cron:1.20, golang-cron:1.19 and golang-cron:1.23
+    cpu: 0.5 # Default value is: 1
+    memory: 128m # Default value is: 128m
+    envs:
+      SUBJECT: "Hello, lambda function send_mail_cron."
+      MESSAGE: "Hello, lambda function send_mail_cron."
+    function:
+      path: ./send-mail.go
+      trigger:
+        cron:
+          interval: 1m # PS: the mininum time accepted is 1m(1 minute). Example: 1m(to execute each 1 minute), 5m(to execute each 5 minute), 1h(to execute each 1 hour), 5h(to execute each 5 hours)
+    ```
+  - Http trigger:
+    ```yaml
+    name: name_lambda_function
+    runtime: golang:1.23 # The another runtimes allowed: golang:1.20, golang:1.19 and golang:1.23
+    cpu: 1 # Default value is: 1
+    memory: 128m # Default value is: 128m
+    envs:
+      WEBHOOK_URL: value_env_here
+    function:
+      path: ./function.go # the lambda function path
+      trigger:
+        http:
+          method: POST # HTTP VERB. OTHER OPTIONS: POST, DELETE, GET and PUT
+          path: / # PATH TO TRIGGER THE LAMBDA FUNCTION. THE PATH IS BASED THE PATH FROM FIBER v2
+    ```
 
 ### ADDIONAL NOTES
 
