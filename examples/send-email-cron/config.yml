@@ -1,0 +1,12 @@
+name: send_mail_cron
+runtime: golang-cron:1.23
+cpu: 0.5
+memory: 128m
+envs:
+  SUBJECT: "Hello, lambda function send_mail_cron."
+  MESSAGE: "Hello, lambda function send_mail_cron."
+function:
+  path: ./send-mail.go
+  trigger:
+    cron:
+      interval: 1m
