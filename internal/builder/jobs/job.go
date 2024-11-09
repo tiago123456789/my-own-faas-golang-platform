@@ -16,7 +16,6 @@ func Init(respository *repositories.FunctionRepository) {
 	consumer := queue.NewConsumer(
 		"builder_docker_image",
 		func(message map[string]interface{}) error {
-			fmt.Println(message)
 			respository.UpdateProcess(
 				message["id"],
 				"IN_PROGRESS",
@@ -32,6 +31,11 @@ func Init(respository *repositories.FunctionRepository) {
 
 			if err != nil {
 				fmt.Printf("Error: %v", err)
+				respository.UpdateProcess(
+					message["id"],
+					"FAILED",
+				)
+				return nil
 			}
 
 			verstionTag := fmt.Sprintf("%s", message["runtime"])
@@ -53,23 +57,41 @@ func Init(respository *repositories.FunctionRepository) {
 
 			cmd := exec.Command("/bin/sh", "-c", commandToBuild)
 			stdout, _ := cmd.StdoutPipe()
-			cmd.Start()
+
+			err = cmd.Start()
+			if err != nil {
+				fmt.Printf("Error: %v", err)
+				respository.UpdateProcess(
+					message["id"],
+					"FAILED",
+				)
+				return nil
+			}
+
 			scanner := bufio.NewScanner(stdout)
 			scanner.Split(bufio.ScanLines)
 			for scanner.Scan() {
 				m := scanner.Text()
-
 				fmt.Println(m)
+			}
+
+			if err := cmd.Wait(); err != nil {
+				fmt.Printf("Error: %v", err)
+				respository.UpdateProcess(
+					message["id"],
+					"FAILED",
+				)
+				return nil
 			}
 
 			err = os.Remove(destFolder)
 			if err != nil {
 				fmt.Printf("Error: %v", err)
-			}
-
-			if err != nil {
-				fmt.Println(fmt.Sprintf("Error: %v", err))
-				return err
+				respository.UpdateProcess(
+					message["id"],
+					"FAILED",
+				)
+				return nil
 			}
 
 			respository.UpdateProcess(

@@ -54,6 +54,12 @@ func (cP *DeployCommand) monitorBuildProgress(functionId string, functionName st
 					ticker.Stop()
 					close(quit)
 				}
+
+				if responseDataProgress["buildProgress"] == "FAILED" {
+					fmt.Printf("The function %s has something wrong!!!\n", functionName)
+					ticker.Stop()
+					close(quit)
+				}
 			}
 		}
 	}()
